@@ -1,6 +1,8 @@
 import { ChainId, Currency, Ether, NativeCurrency, Token, UNI_ADDRESSES, WETH9 } from '@uniswap/sdk-core'
 import invariant from 'tiny-invariant'
 
+import { isMaichain, MAICHAIN_CHAIN_ID, MAICHAIN_DEPLOYMENTS } from './maichain'
+
 export const NATIVE_CHAIN_ID = 'NATIVE'
 
 // When decimals are not specified for an ERC20 token
@@ -249,6 +251,8 @@ export const DAI_AVALANCHE = new Token(
   'DAI.e',
   'Dai.e Token'
 )
+export const WMAI_MAICHAIN = new Token(MAICHAIN_CHAIN_ID, MAICHAIN_DEPLOYMENTS.WETH9, 18, 'WMAI', 'Wrapped MAI')
+export const USDT_MAICHAIN = new Token(MAICHAIN_CHAIN_ID, MAICHAIN_DEPLOYMENTS.USDT, 6, 'USDT', 'Tether USD')
 
 export const UNI: { [chainId: number]: Token } = {
   [ChainId.MAINNET]: new Token(ChainId.MAINNET, UNI_ADDRESSES[ChainId.MAINNET], 18, 'UNI', 'Uniswap'),
@@ -334,6 +338,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId: number]: Token | undefined } =
     'WAVAX',
     'Wrapped AVAX'
   ),
+  [MAICHAIN_CHAIN_ID]: WMAI_MAICHAIN,
 }
 
 export function isCelo(chainId: number): chainId is ChainId.CELO | ChainId.CELO_ALFAJORES {
@@ -417,6 +422,24 @@ class AvaxNativeCurrency extends NativeCurrency {
   }
 }
 
+class MaichainNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId
+  }
+
+  get wrapped(): Token {
+    if (!isMaichain(this.chainId)) throw new Error('Not MaiChain')
+    const wrapped = WRAPPED_NATIVE_CURRENCY[this.chainId]
+    invariant(wrapped instanceof Token)
+    return wrapped
+  }
+
+  public constructor(chainId: number) {
+    if (!isMaichain(chainId)) throw new Error('Not MaiChain')
+    super(chainId, 18, 'MAI', 'MaiChain')
+  }
+}
+
 class ExtendedEther extends Ether {
   public get wrapped(): Token {
     const wrapped = WRAPPED_NATIVE_CURRENCY[this.chainId]
@@ -443,6 +466,8 @@ export function nativeOnChain(chainId: number): NativeCurrency | Token {
     nativeCurrency = new BscNativeCurrency(chainId)
   } else if (isAvalanche(chainId)) {
     nativeCurrency = new AvaxNativeCurrency(chainId)
+  } else if (isMaichain(chainId)) {
+    nativeCurrency = new MaichainNativeCurrency(chainId)
   } else {
     nativeCurrency = ExtendedEther.onChain(chainId)
   }
@@ -456,7 +481,7 @@ export function getSwapCurrencyId(currency: Currency): string {
   return NATIVE_CHAIN_ID
 }
 
-export const TOKEN_SHORTHANDS: { [shorthand: string]: { [chainId in ChainId]?: string } } = {
+export const TOKEN_SHORTHANDS: { [shorthand: string]: { [chainId: number]: string | undefined } } = {
   USDC: {
     [ChainId.MAINNET]: USDC_MAINNET.address,
     [ChainId.ARBITRUM_ONE]: BRIDGED_USDC_ARBITRUM.address,
@@ -471,5 +496,8 @@ export const TOKEN_SHORTHANDS: { [shorthand: string]: { [chainId in ChainId]?: s
     [ChainId.GOERLI]: USDC_GOERLI.address,
     [ChainId.SEPOLIA]: USDC_SEPOLIA.address,
     [ChainId.AVALANCHE]: USDC_AVALANCHE.address,
+  },
+  USDT: {
+    [MAICHAIN_CHAIN_ID]: USDT_MAICHAIN.address,
   },
 }

@@ -18,9 +18,12 @@ function toDeadline(expiration: number): number {
   return Math.floor((Date.now() + expiration) / 1000)
 }
 
-export function usePermitAllowance(token?: Token, owner?: string, spender?: string) {
-  const contract = useContract<Permit2>(PERMIT2_ADDRESS, PERMIT2_ABI)
-  const inputs = useMemo(() => [owner, token?.address, spender], [owner, spender, token?.address])
+export function usePermitAllowance(token?: Token, owner?: string, spender?: string, enabled = true) {
+  const contract = useContract<Permit2>(enabled ? PERMIT2_ADDRESS : undefined, PERMIT2_ABI)
+  const inputs = useMemo(
+    () => (enabled ? [owner, token?.address, spender] : []),
+    [enabled, owner, spender, token?.address]
+  )
 
   // If there is no allowance yet, re-check next observed block.
   // This guarantees that the permitAllowance is synced upon submission and updated upon being synced.

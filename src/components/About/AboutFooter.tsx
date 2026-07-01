@@ -1,6 +1,5 @@
 import { BrowserEvent, InterfaceElementName, SharedEventName } from '@uniswap/analytics-events'
 import { TraceEvent } from 'analytics'
-import { useDisableNFTRoutes } from 'hooks/useDisableNFTRoutes'
 import styled from 'styled-components'
 import { BREAKPOINTS, ExternalLink, StyledRouterLink } from 'theme'
 import { useIsDarkMode } from 'theme/components/ThemeToggle'
@@ -138,7 +137,6 @@ const LogoSectionContent = () => {
 }
 
 export const AboutFooter = () => {
-  const shouldDisableNFTRoutes = useDisableNFTRoutes()
   return (
     <Footer>
       <LogoSectionLeft>
@@ -150,7 +148,6 @@ export const AboutFooter = () => {
           <LinkGroupTitle>App</LinkGroupTitle>
           <TextLink to="/swap">Swap</TextLink>
           <TextLink to="/tokens">Tokens</TextLink>
-          {!shouldDisableNFTRoutes && <TextLink to="/nfts">NFTs</TextLink>}
           <TextLink to="/pools">Pools</TextLink>
         </LinkGroup>
         <LinkGroup>

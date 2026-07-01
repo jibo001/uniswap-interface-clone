@@ -1,5 +1,7 @@
 import { ChainId } from '@uniswap/sdk-core'
 
+import { MAICHAIN_CHAIN_ID, MAICHAIN_EXPLORER_URL } from 'constants/maichain'
+
 const BLOCK_EXPLORER_PREFIXES: { [chainId: number]: string } = {
   [ChainId.MAINNET]: 'https://etherscan.io',
   [ChainId.GOERLI]: 'https://goerli.etherscan.io',
@@ -13,6 +15,7 @@ const BLOCK_EXPLORER_PREFIXES: { [chainId: number]: string } = {
   [ChainId.BNB]: 'https://bscscan.com',
   [ChainId.AVALANCHE]: 'https://snowtrace.io',
   [ChainId.BASE]: 'https://basescan.org',
+  [MAICHAIN_CHAIN_ID]: MAICHAIN_EXPLORER_URL.replace(/\/$/, ''),
 }
 
 export enum ExplorerDataType {

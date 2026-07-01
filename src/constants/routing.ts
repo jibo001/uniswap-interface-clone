@@ -1,6 +1,7 @@
 // a list of tokens by chain
 import { ChainId, Currency, Token } from '@uniswap/sdk-core'
 
+import { MAICHAIN_CHAIN_ID } from './maichain'
 import {
   ARB,
   BTC_BSC,
@@ -33,6 +34,7 @@ import {
   USDT_ARBITRUM_ONE,
   USDT_AVALANCHE,
   USDT_BSC,
+  USDT_MAICHAIN,
   USDT_OPTIMISM,
   USDT_POLYGON,
   WBTC,
@@ -42,6 +44,7 @@ import {
   WETH_AVALANCHE,
   WETH_POLYGON,
   WETH_POLYGON_MUMBAI,
+  WMAI_MAICHAIN,
   WRAPPED_NATIVE_CURRENCY,
 } from './tokens'
 
@@ -115,6 +118,7 @@ export const COMMON_BASES: ChainCurrencyList = {
     USDT_AVALANCHE,
     WETH_AVALANCHE,
   ],
+  [MAICHAIN_CHAIN_ID]: [nativeOnChain(MAICHAIN_CHAIN_ID), WMAI_MAICHAIN, USDT_MAICHAIN],
 }
 
 // used to construct the list of all pairs we consider by default in the frontend
@@ -137,6 +141,7 @@ export const BASES_TO_TRACK_LIQUIDITY_FOR: ChainTokenList = {
     USDT_AVALANCHE,
     WETH_AVALANCHE,
   ],
+  [MAICHAIN_CHAIN_ID]: [...WRAPPED_NATIVE_CURRENCIES_ONLY[MAICHAIN_CHAIN_ID], USDT_MAICHAIN],
 }
 export const PINNED_PAIRS: { readonly [chainId: number]: [Token, Token][] } = {
   [ChainId.MAINNET]: [

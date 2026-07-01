@@ -1,3 +1,5 @@
+import enUS from 'locales/en-US'
+
 export const SUPPORTED_LOCALES = [
   // order as they appear in the language dropdown
   'en-US',
@@ -36,7 +38,7 @@ export const SUPPORTED_LOCALES = [
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
 export const DEFAULT_LOCALE: SupportedLocale = 'en-US'
-export { messages as DEFAULT_MESSAGES } from 'locales/en-US'
+export const DEFAULT_MESSAGES = enUS.messages
 
 export const LOCALE_LABEL: { [locale in SupportedLocale]: string } = {
   'af-ZA': 'Afrikaans',

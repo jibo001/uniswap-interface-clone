@@ -1,11 +1,13 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { t } from '@lingui/macro'
 import { SwapEventName } from '@uniswap/analytics-events'
-import { Percent } from '@uniswap/sdk-core'
-import { SwapRouter, UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk'
-import { FeeOptions, toHex } from '@uniswap/v3-sdk'
+import { Currency, Percent } from '@uniswap/sdk-core'
+import { SwapRouter as UniversalSwapRouter, UNIVERSAL_ROUTER_ADDRESS } from '@uniswap/universal-router-sdk'
+import { FeeOptions, Route as V3Route, SwapRouter as V3SwapRouter, toHex, Trade as V3Trade } from '@uniswap/v3-sdk'
 import { useWeb3React } from '@web3-react/core'
 import { sendAnalyticsEvent, useTrace } from 'analytics'
+import { isMaichain, MAICHAIN_DEPLOYMENTS } from 'constants/maichain'
+import { DEFAULT_DEADLINE_FROM_NOW } from 'constants/misc'
 import useBlockNumber from 'lib/hooks/useBlockNumber'
 import { formatCommonPropertiesForTrade, formatSwapSignedAnalyticsEventProperties } from 'lib/utils/analytics'
 import { useCallback } from 'react'
@@ -44,6 +46,18 @@ interface SwapOptions {
   feeOptions?: FeeOptions
 }
 
+function toV3Trade(trade: ClassicTrade) {
+  return V3Trade.createUncheckedTradeWithMultipleRoutes({
+    routes: trade.swaps.map(({ route, inputAmount, outputAmount }) => {
+      if (!('pools' in route)) {
+        throw new Error('MaiChain swaps only support Uniswap V3 routes')
+      }
+      return { route: route as unknown as V3Route<Currency, Currency>, inputAmount, outputAmount }
+    }),
+    tradeType: trade.tradeType,
+  })
+}
+
 export function useUniversalRouterSwapCallback(
   trade: ClassicTrade | undefined,
   fiatValues: { amountIn?: number; amountOut?: number },
@@ -69,20 +83,37 @@ export function useUniversalRouterSwapCallback(
         // TODO(WEB-2725): update universal-router-sdk to not reconstruct trades
         const taxAdjustedSlippageTolerance = options.slippageTolerance.add(trade.totalTaxRate)
 
-        const { calldata: data, value } = SwapRouter.swapERC20CallParameters(trade, {
-          slippageTolerance: taxAdjustedSlippageTolerance,
-          deadlineOrPreviousBlockhash: options.deadline?.toString(),
-          inputTokenPermit: options.permit,
-          fee: options.feeOptions,
-        })
-
-        const tx = {
-          from: account,
-          to: UNIVERSAL_ROUTER_ADDRESS(chainId),
-          data,
-          // TODO(https://github.com/Uniswap/universal-router-sdk/issues/113): universal-router-sdk returns a non-hexlified value.
-          ...(value && !isZero(value) ? { value: toHex(value) } : {}),
-        }
+        const tx = isMaichain(chainId)
+          ? (() => {
+              const deadline = options.deadline?.toString() ?? Math.floor(Date.now() / 1000 + DEFAULT_DEADLINE_FROM_NOW)
+              const { calldata: data, value } = V3SwapRouter.swapCallParameters(toV3Trade(trade), {
+                slippageTolerance: taxAdjustedSlippageTolerance,
+                recipient: account,
+                deadline,
+                fee: options.feeOptions,
+              })
+              return {
+                from: account,
+                to: MAICHAIN_DEPLOYMENTS.SwapRouter,
+                data,
+                ...(value && !isZero(value) ? { value } : {}),
+              }
+            })()
+          : (() => {
+              const { calldata: data, value } = UniversalSwapRouter.swapERC20CallParameters(trade, {
+                slippageTolerance: taxAdjustedSlippageTolerance,
+                deadlineOrPreviousBlockhash: options.deadline?.toString(),
+                inputTokenPermit: options.permit,
+                fee: options.feeOptions,
+              })
+              return {
+                from: account,
+                to: UNIVERSAL_ROUTER_ADDRESS(chainId),
+                data,
+                // TODO(https://github.com/Uniswap/universal-router-sdk/issues/113): universal-router-sdk returns a non-hexlified value.
+                ...(value && !isZero(value) ? { value: toHex(value) } : {}),
+              }
+            })()
 
         let gasEstimate: BigNumber
         try {
@@ -152,6 +183,7 @@ export function useUniversalRouterSwapCallback(
   }, [
     account,
     analyticsContext,
+    blockNumber,
     chainId,
     fiatValues,
     options.deadline,

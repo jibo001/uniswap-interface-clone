@@ -4,11 +4,13 @@ import { useMemo } from 'react'
 import { isAddress } from 'utils'
 
 import EthereumLogo from '../../assets/images/ethereum-logo.png'
+import MaiLogo from '../../assets/images/mai-logo.png'
 import AvaxLogo from '../../assets/svg/avax_logo.svg'
 import BnbLogo from '../../assets/svg/bnb-logo.svg'
 import CeloLogo from '../../assets/svg/celo_logo.svg'
 import MaticLogo from '../../assets/svg/matic-token-icon.svg'
-import { isCelo, NATIVE_CHAIN_ID, nativeOnChain } from '../../constants/tokens'
+import { isMaichain, MAICHAIN_CHAIN_ID } from '../../constants/maichain'
+import { isCelo, NATIVE_CHAIN_ID, nativeOnChain, USDT_MAICHAIN, WMAI_MAICHAIN } from '../../constants/tokens'
 
 type Network = 'ethereum' | 'arbitrum' | 'optimism' | 'polygon' | 'smartchain' | 'celo' | 'avalanchec'
 
@@ -33,7 +35,7 @@ export function chainIdToNetworkName(networkId: ChainId): Network {
   }
 }
 
-export function getNativeLogoURI(chainId: ChainId = ChainId.MAINNET): string {
+export function getNativeLogoURI(chainId: ChainId | number = ChainId.MAINNET): string {
   switch (chainId) {
     case ChainId.POLYGON:
     case ChainId.POLYGON_MUMBAI:
@@ -45,19 +47,29 @@ export function getNativeLogoURI(chainId: ChainId = ChainId.MAINNET): string {
       return CeloLogo
     case ChainId.AVALANCHE:
       return AvaxLogo
+    case MAICHAIN_CHAIN_ID:
+      return MaiLogo
     default:
       return EthereumLogo
   }
 }
 
-function getTokenLogoURI(address: string, chainId: ChainId = ChainId.MAINNET): string | void {
-  const networkName = chainIdToNetworkName(chainId)
+function getTokenLogoURI(address: string, chainId: ChainId | number = ChainId.MAINNET): string | void {
+  const networkName = chainIdToNetworkName(chainId as ChainId)
   const networksWithUrls = [ChainId.ARBITRUM_ONE, ChainId.MAINNET, ChainId.OPTIMISM, ChainId.BNB, ChainId.AVALANCHE]
   if (isCelo(chainId) && address === nativeOnChain(chainId).wrapped.address) {
     return CeloLogo
   }
 
-  if (networksWithUrls.includes(chainId)) {
+  if (isMaichain(chainId) && address.toLowerCase() === WMAI_MAICHAIN.address.toLowerCase()) {
+    return MaiLogo
+  }
+
+  if (isMaichain(chainId) && address.toLowerCase() === USDT_MAICHAIN.address.toLowerCase()) {
+    return 'https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png'
+  }
+
+  if (networksWithUrls.includes(chainId as ChainId)) {
     return `https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/${networkName}/assets/${address}/logo.png`
   }
 }

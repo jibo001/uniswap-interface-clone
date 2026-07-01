@@ -2,6 +2,7 @@ import { ChainId, Currency, Token } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { getChainInfo } from 'constants/chainInfo'
 import { DEFAULT_INACTIVE_LIST_URLS, DEFAULT_LIST_OF_LISTS } from 'constants/lists'
+import { BASES_TO_TRACK_LIQUIDITY_FOR, COMMON_BASES } from 'constants/routing'
 import { useCurrencyFromMap, useTokenFromMapOrNetwork } from 'lib/hooks/useCurrency'
 import { getTokenFilter } from 'lib/hooks/useTokenList/filtering'
 import { TokenAddressMap } from 'lib/hooks/useTokenList/utils'
@@ -57,6 +58,23 @@ export function useAllTokensMultichain(): ChainTokenMap {
         tokenMap[token.address] = token
       })
       chainTokenMap[chainId] = tokenMap
+    })
+
+    const mergeKnownTokens = (chainId: number, currencies: readonly (Currency | Token)[]) => {
+      const tokenMap = chainTokenMap[chainId] ?? {}
+      currencies.forEach((currency) => {
+        if (currency.isToken) {
+          tokenMap[currency.address] = currency
+        }
+      })
+      chainTokenMap[chainId] = tokenMap
+    }
+
+    Object.entries(COMMON_BASES).forEach(([chainId, currencies]) => {
+      mergeKnownTokens(Number(chainId), currencies)
+    })
+    Object.entries(BASES_TO_TRACK_LIQUIDITY_FOR).forEach(([chainId, tokens]) => {
+      mergeKnownTokens(Number(chainId), tokens)
     })
 
     return chainTokenMap

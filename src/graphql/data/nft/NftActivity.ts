@@ -93,7 +93,7 @@ export function useNftActivity(filter: NftActivityFilterInput, first?: number, f
   const nftActivity: ActivityEvent[] | undefined = useMemo(
     () =>
       data?.nftActivity?.edges?.map((queryActivity) => {
-        const activity = queryActivity?.node
+        const activity = queryActivity.node
         const asset = activity?.asset
         return {
           collectionAddress: activity.address,

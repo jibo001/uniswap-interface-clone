@@ -1,11 +1,13 @@
 import tokenLogoLookup from 'constants/tokenLogoLookup'
-import { isCelo, nativeOnChain } from 'constants/tokens'
+import { isMaichain } from 'constants/maichain'
+import { isCelo, nativeOnChain, USDT_MAICHAIN, WMAI_MAICHAIN } from 'constants/tokens'
 import { checkWarning, WARNING_LEVEL } from 'constants/tokenSafety'
 import { chainIdToNetworkName, getNativeLogoURI } from 'lib/hooks/useCurrencyLogoURIs'
 import uriToHttp from 'lib/utils/uriToHttp'
 import { useCallback, useEffect, useState } from 'react'
 import { isAddress } from 'utils'
 
+import MaiLogo from '../assets/images/mai-logo.png'
 import celoLogo from '../assets/svg/celo_logo.svg'
 
 const BAD_SRCS: { [tokenAddress: string]: true } = {}
@@ -51,6 +53,14 @@ function getInitialUrl(
 
   if (chainId && isCelo(chainId) && address === nativeOnChain(chainId).wrapped.address) {
     return celoLogo
+  }
+
+  if (chainId && isMaichain(chainId) && address?.toLowerCase() === WMAI_MAICHAIN.address.toLowerCase()) {
+    return MaiLogo
+  }
+
+  if (chainId && isMaichain(chainId) && address?.toLowerCase() === USDT_MAICHAIN.address.toLowerCase()) {
+    return 'https://raw.githubusercontent.com/Uniswap/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png'
   }
 
   if (checksummedAddress) {

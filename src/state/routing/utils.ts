@@ -6,6 +6,7 @@ import { DutchOrderInfo, DutchOrderInfoJSON } from '@uniswap/uniswapx-sdk'
 import { Pair, Route as V2Route } from '@uniswap/v2-sdk'
 import { FeeAmount, Pool, Route as V3Route } from '@uniswap/v3-sdk'
 import { asSupportedChain } from 'constants/chains'
+import { isMaichain } from 'constants/maichain'
 import { ZERO_PERCENT } from 'constants/misc'
 import { RPC_PROVIDERS } from 'constants/providers'
 import { getInputTax, getOutputTax } from 'constants/tax'
@@ -317,6 +318,7 @@ export function currencyAddressForSwapQuote(currency: Currency): string {
     if (isMatic(currency.chainId)) return SwapRouterNativeAssets.MATIC
     if (isBsc(currency.chainId)) return SwapRouterNativeAssets.BNB
     if (isAvalanche(currency.chainId)) return SwapRouterNativeAssets.AVAX
+    if (isMaichain(currency.chainId)) return SwapRouterNativeAssets.MAI
     return SwapRouterNativeAssets.ETH
   }
 

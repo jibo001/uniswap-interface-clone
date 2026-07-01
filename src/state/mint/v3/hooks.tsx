@@ -447,7 +447,7 @@ export function useV3DerivedMintInfo(
     errorMessage = <Trans>Connect Wallet</Trans>
   }
 
-  if (poolState === PoolState.INVALID) {
+  if (poolState === PoolState.INVALID && feeAmount) {
     errorMessage = errorMessage ?? <Trans>Invalid pair</Trans>
   }
 

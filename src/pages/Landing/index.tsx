@@ -8,11 +8,10 @@ import ProtocolBanner from 'components/About/ProtocolBanner'
 import { useAccountDrawer } from 'components/AccountDrawer'
 import { BaseButton } from 'components/Button'
 import { AppleLogo } from 'components/Logo/AppleLogo'
-import { useDisableNFTRoutes } from 'hooks/useDisableNFTRoutes'
 import Swap from 'pages/Swap'
 import { RedirectPathToSwapOnly } from 'pages/Swap/redirects'
 import { parse } from 'qs'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { ArrowDownCircle } from 'react-feather'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Link as NativeLink } from 'react-router-dom'
@@ -303,11 +302,7 @@ export default function Landing() {
   const isDarkMode = useIsDarkMode()
   const cardsRef = useRef<HTMLDivElement>(null)
   const selectedWallet = useAppSelector((state) => state.user.selectedWallet)
-  const shouldDisableNFTRoutes = useDisableNFTRoutes()
-  const cards = useMemo(
-    () => MAIN_CARDS.filter((card) => !(shouldDisableNFTRoutes && card.to.startsWith('/nft'))),
-    [shouldDisableNFTRoutes]
-  )
+  const cards = MAIN_CARDS
 
   const [accountDrawerOpen] = useAccountDrawer()
   const navigate = useNavigate()
@@ -344,19 +339,11 @@ export default function Landing() {
         </GlowContainer>
         <ContentContainer isDarkMode={isDarkMode}>
           <TitleText isDarkMode={isDarkMode}>
-            {shouldDisableNFTRoutes ? (
-              <Trans>Trade crypto with confidence</Trans>
-            ) : (
-              <Trans>Trade crypto and NFTs with confidence</Trans>
-            )}
+            <Trans>Trade crypto with confidence</Trans>
           </TitleText>
           <SubTextContainer>
             <SubText>
-              {shouldDisableNFTRoutes ? (
-                <Trans>Buy, sell, and explore tokens</Trans>
-              ) : (
-                <Trans>Buy, sell, and explore tokens and NFTs</Trans>
-              )}
+              <Trans>Buy, sell, and explore tokens</Trans>
             </SubText>
           </SubTextContainer>
           <ActionsContainer>

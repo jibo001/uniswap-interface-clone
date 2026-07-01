@@ -36,7 +36,8 @@ const query = gql`
 export default function useFeeTierDistributionQuery(
   token0: string | undefined,
   token1: string | undefined,
-  interval: number
+  interval: number,
+  skip = false
 ): { error?: ApolloError; isLoading: boolean; data: FeeTierDistributionQuery } {
   const {
     data,
@@ -49,6 +50,7 @@ export default function useFeeTierDistributionQuery(
     },
     pollInterval: interval,
     client: apolloClient,
+    skip: skip || !token0 || !token1,
   })
 
   return useMemo(

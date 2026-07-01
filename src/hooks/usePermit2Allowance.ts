@@ -2,6 +2,7 @@ import { PERMIT2_ADDRESS } from '@uniswap/permit2-sdk'
 import { CurrencyAmount, Token } from '@uniswap/sdk-core'
 import { useWeb3React } from '@web3-react/core'
 import { AVERAGE_L1_BLOCK_TIME } from 'constants/chainInfo'
+import { isMaichain } from 'constants/maichain'
 import { PermitSignature, usePermitAllowance, useUpdatePermitAllowance } from 'hooks/usePermitAllowance'
 import { useRevokeTokenAllowance, useTokenAllowance, useUpdateTokenAllowance } from 'hooks/useTokenAllowance'
 import useInterval from 'lib/hooks/useInterval'
@@ -51,10 +52,12 @@ export default function usePermit2Allowance(
 ): Allowance {
   const { account } = useWeb3React()
   const token = amount?.currency
+  const useDirectRouterApproval = isMaichain(token?.chainId)
+  const approvalSpender = useDirectRouterApproval ? spender : PERMIT2_ADDRESS
 
-  const { tokenAllowance, isSyncing: isApprovalSyncing } = useTokenAllowance(token, account, PERMIT2_ADDRESS)
-  const updateTokenAllowance = useUpdateTokenAllowance(amount, PERMIT2_ADDRESS)
-  const revokeTokenAllowance = useRevokeTokenAllowance(token, PERMIT2_ADDRESS)
+  const { tokenAllowance, isSyncing: isApprovalSyncing } = useTokenAllowance(token, account, approvalSpender)
+  const updateTokenAllowance = useUpdateTokenAllowance(amount, approvalSpender)
+  const revokeTokenAllowance = useRevokeTokenAllowance(token, approvalSpender)
   const isApproved = useMemo(() => {
     if (!amount || !tokenAllowance) return false
     return tokenAllowance.greaterThan(amount) || tokenAllowance.equalTo(amount)
@@ -65,8 +68,8 @@ export default function usePermit2Allowance(
   // until it has been re-observed. It wll sync immediately, because confirmation fast-forwards the block number.
   const [approvalState, setApprovalState] = useState(ApprovalState.SYNCED)
   const isApprovalLoading = approvalState !== ApprovalState.SYNCED
-  const isApprovalPending = useHasPendingApproval(token, PERMIT2_ADDRESS)
-  const isRevocationPending = useHasPendingRevocation(token, PERMIT2_ADDRESS)
+  const isApprovalPending = useHasPendingApproval(token, approvalSpender)
+  const isRevocationPending = useHasPendingRevocation(token, approvalSpender)
 
   useEffect(() => {
     if (isApprovalPending) {
@@ -97,7 +100,11 @@ export default function usePermit2Allowance(
     return signature.details.token === token?.address && signature.spender === spender && signature.sigDeadline >= now
   }, [amount, now, signature, spender, token?.address])
 
-  const { permitAllowance, expiration: permitExpiration, nonce } = usePermitAllowance(token, account, spender)
+  const {
+    permitAllowance,
+    expiration: permitExpiration,
+    nonce,
+  } = usePermitAllowance(token, account, spender, !useDirectRouterApproval)
   const updatePermitAllowance = useUpdatePermitAllowance(token, spender, nonce, setSignature)
   const isPermitted = useMemo(() => {
     if (!amount || !permitAllowance || !permitExpiration) return false
@@ -107,7 +114,8 @@ export default function usePermit2Allowance(
   const shouldRequestApproval = !(isApproved || isApprovalLoading)
 
   // UniswapX trades do not need a permit signature step in between because the swap step _is_ the permit signature
-  const shouldRequestSignature = tradeFillType !== TradeFillType.UniswapX && !(isPermitted || isSigned)
+  const shouldRequestSignature =
+    !useDirectRouterApproval && tradeFillType !== TradeFillType.UniswapX && !(isPermitted || isSigned)
 
   const addTransaction = useTransactionAdder()
   const approveAndPermit = useCallback(async () => {
@@ -132,7 +140,7 @@ export default function usePermit2Allowance(
 
   return useMemo(() => {
     if (token) {
-      if (!tokenAllowance || !permitAllowance) {
+      if (!tokenAllowance || (!useDirectRouterApproval && !permitAllowance)) {
         return { state: AllowanceState.LOADING }
       } else if (shouldRequestSignature) {
         return {
@@ -169,7 +177,7 @@ export default function usePermit2Allowance(
     return {
       token,
       state: AllowanceState.ALLOWED,
-      permitSignature: !isPermitted && isSigned ? signature : undefined,
+      permitSignature: !useDirectRouterApproval && !isPermitted && isSigned ? signature : undefined,
       needsSetupApproval: false,
       needsPermitSignature: false,
     }
@@ -189,5 +197,6 @@ export default function usePermit2Allowance(
     signature,
     token,
     tokenAllowance,
+    useDirectRouterApproval,
   ])
 }

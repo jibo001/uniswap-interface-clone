@@ -1,6 +1,7 @@
 import { ChainId } from '@uniswap/sdk-core'
 import bnbCircleLogoUrl from 'assets/images/bnbCircle.svg'
 import ethereumLogoUrl from 'assets/images/ethereum-logo.png'
+import maichainLogoUrl from 'assets/images/maichain-logo.png'
 import polygonCircleLogoUrl from 'assets/images/polygonCircle.png'
 import { default as arbitrumCircleLogoUrl, default as arbitrumLogoUrl } from 'assets/svg/arbitrum_logo.svg'
 import avaxLogo from 'assets/svg/avax_logo.svg'
@@ -18,8 +19,9 @@ import polygonMaticLogo from 'assets/svg/polygon-matic-logo.svg'
 import ms from 'ms'
 import { darkTheme } from 'theme/colors'
 
-import { SupportedL1ChainId, SupportedL2ChainId } from './chains'
+import { SupportedInterfaceChain, SupportedL1ChainId, SupportedL2ChainId } from './chains'
 import { ARBITRUM_LIST, AVALANCHE_LIST, BASE_LIST, CELO_LIST, OPTIMISM_LIST, PLASMA_BNB_LIST } from './lists'
+import { MAICHAIN_CHAIN_ID, MAICHAIN_EXPLORER_URL } from './maichain'
 
 export const AVERAGE_L1_BLOCK_TIME = ms(`12s`)
 
@@ -94,6 +96,18 @@ const CHAIN_INFO: ChainInfoMap = {
     logoUrl: ethereumLogoUrl,
     nativeCurrency: { name: 'Sepolia Ether', symbol: 'SepoliaETH', decimals: 18 },
     color: darkTheme.chain_5,
+  },
+  [MAICHAIN_CHAIN_ID]: {
+    networkType: NetworkType.L1,
+    blockWaitMsBeforeWarning: ms(`10m`),
+    docs: 'https://docs.uniswap.org/',
+    explorer: MAICHAIN_EXPLORER_URL,
+    infoLink: 'https://info.uniswap.org/#/',
+    label: 'MaiChain Testnet',
+    logoUrl: maichainLogoUrl,
+    circleLogoUrl: maichainLogoUrl,
+    nativeCurrency: { name: 'MAI', symbol: 'MAI', decimals: 18 },
+    color: '#36C475',
   },
   [ChainId.OPTIMISM]: {
     networkType: NetworkType.L2,
@@ -259,7 +273,7 @@ const CHAIN_INFO: ChainInfoMap = {
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     color: darkTheme.chain_84531,
   },
-} as const
+} satisfies ChainInfoMap
 
 export function getChainInfo(
   chainId: SupportedL1ChainId,
@@ -271,6 +285,10 @@ export function getChainInfo(
 ): L2ChainInfo
 export function getChainInfo(
   chainId: ChainId,
+  featureFlags?: Record<ChainId | SupportedL1ChainId | SupportedL2ChainId | number, boolean>
+): L1ChainInfo | L2ChainInfo
+export function getChainInfo(
+  chainId: SupportedInterfaceChain,
   featureFlags?: Record<ChainId | SupportedL1ChainId | SupportedL2ChainId | number, boolean>
 ): L1ChainInfo | L2ChainInfo
 export function getChainInfo(

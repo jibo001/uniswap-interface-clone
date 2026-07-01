@@ -335,6 +335,7 @@ export enum SwapRouterNativeAssets {
   MATIC = 'MATIC',
   BNB = 'BNB',
   AVAX = 'AVAX',
+  MAI = 'MAI',
   ETH = 'ETH',
 }
 

@@ -1,5 +1,7 @@
 import { Currency, Token } from '@uniswap/sdk-core'
 import { FeeAmount } from '@uniswap/v3-sdk'
+import { useWeb3React } from '@web3-react/core'
+import { isMaichain } from 'constants/maichain'
 import useBlockNumber from 'lib/hooks/useBlockNumber'
 import ms from 'ms'
 import { useMemo } from 'react'
@@ -9,6 +11,8 @@ import { PoolState, usePool } from './usePools'
 
 // maximum number of blocks past which we consider the data stale
 const MAX_DATA_BLOCK_AGE = 20
+
+const FEE_TIER_PRIORITY = [FeeAmount.MEDIUM, FeeAmount.LOW, FeeAmount.HIGH, FeeAmount.LOWEST] as const
 
 interface FeeTierDistribution {
   isLoading: boolean
@@ -23,7 +27,14 @@ export function useFeeTierDistribution(
   currencyA: Currency | undefined,
   currencyB: Currency | undefined
 ): FeeTierDistribution {
-  const { isLoading, error, distributions } = usePoolTVL(currencyA?.wrapped, currencyB?.wrapped)
+  const { chainId } = useWeb3React()
+  const useOnChainOnly = isMaichain(chainId)
+
+  const { isLoading, error, distributions } = usePoolTVL(
+    useOnChainOnly ? undefined : currencyA?.wrapped,
+    useOnChainOnly ? undefined : currencyB?.wrapped,
+    useOnChainOnly
+  )
 
   // fetch all pool states to determine pool state
   const [poolStateVeryLow] = usePool(currencyA, currencyB, FeeAmount.LOWEST)
@@ -31,7 +42,35 @@ export function useFeeTierDistribution(
   const [poolStateMedium] = usePool(currencyA, currencyB, FeeAmount.MEDIUM)
   const [poolStateHigh] = usePool(currencyA, currencyB, FeeAmount.HIGH)
 
+  const poolStates = useMemo(
+    () =>
+      ({
+        [FeeAmount.LOWEST]: poolStateVeryLow,
+        [FeeAmount.LOW]: poolStateLow,
+        [FeeAmount.MEDIUM]: poolStateMedium,
+        [FeeAmount.HIGH]: poolStateHigh,
+      } as const),
+    [poolStateVeryLow, poolStateLow, poolStateMedium, poolStateHigh]
+  )
+
   return useMemo(() => {
+    const poolsLoading = Object.values(poolStates).some((state) => state === PoolState.LOADING)
+
+    if (useOnChainOnly) {
+      if (poolsLoading) {
+        return { isLoading: true, isError: false }
+      }
+
+      const existingFeeTier = FEE_TIER_PRIORITY.find((fee) => poolStates[fee] === PoolState.EXISTS)
+
+      return {
+        isLoading: false,
+        isError: false,
+        largestUsageFeeTier: existingFeeTier ?? FeeAmount.MEDIUM,
+        distributions: undefined,
+      }
+    }
+
     if (isLoading || error || !distributions) {
       return {
         isLoading,
@@ -70,16 +109,30 @@ export function useFeeTierDistribution(
       distributions: percentages,
       largestUsageFeeTier: largestUsageFeeTier === -1 ? undefined : largestUsageFeeTier,
     }
-  }, [isLoading, error, distributions, poolStateVeryLow, poolStateLow, poolStateMedium, poolStateHigh])
+  }, [
+    useOnChainOnly,
+    isLoading,
+    error,
+    distributions,
+    poolStates,
+    poolStateVeryLow,
+    poolStateLow,
+    poolStateMedium,
+    poolStateHigh,
+  ])
 }
 
-function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
+function usePoolTVL(token0: Token | undefined, token1: Token | undefined, skip = false) {
   const latestBlock = useBlockNumber()
-  const { isLoading, error, data } = useFeeTierDistributionQuery(token0?.address, token1?.address, ms(`30s`))
+  const { isLoading, error, data } = useFeeTierDistributionQuery(token0?.address, token1?.address, ms(`30s`), skip)
 
   const { asToken0, asToken1, _meta } = data ?? {}
 
   return useMemo(() => {
+    if (skip) {
+      return { isLoading: false, error: undefined }
+    }
+
     if (!latestBlock || !_meta || !asToken0 || !asToken1) {
       return {
         isLoading,
@@ -153,5 +206,5 @@ function usePoolTVL(token0: Token | undefined, token1: Token | undefined) {
       error,
       distributions,
     }
-  }, [_meta, asToken0, asToken1, isLoading, error, latestBlock])
+  }, [_meta, asToken0, asToken1, isLoading, error, latestBlock, skip])
 }

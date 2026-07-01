@@ -5,6 +5,7 @@ import { sendAnalyticsEvent } from 'analytics'
 import { isUniswapXSupportedChain } from 'constants/chains'
 import { getClientSideQuote } from 'lib/hooks/routing/clientSideSmartOrderRouter'
 import ms from 'ms'
+import { getMaichainQuote, isMaichainQuote } from 'state/routing/maichain'
 import { logSwapQuoteRequest } from 'tracing/swapFlowLoggers'
 import { trace } from 'tracing/trace'
 
@@ -125,6 +126,10 @@ export const routingApi = createApi({
         let fellBack = false
         logSwapQuoteRequest(args.tokenInChainId, args.routerPreference)
         const quoteStartMark = performance.mark(`quote-fetch-start-${Date.now()}`)
+        if (isMaichainQuote(args)) {
+          const tradeResult = await getMaichainQuote(args, QuoteMethod.CLIENT_SIDE)
+          return { data: { ...tradeResult, latencyMs: getQuoteLatencyMeasure(quoteStartMark).duration } }
+        }
         if (shouldUseAPIRouter(args)) {
           fellBack = true
           try {

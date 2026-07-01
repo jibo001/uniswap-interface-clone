@@ -1,6 +1,8 @@
-import { ChainId, CurrencyAmount, Token, V3_CORE_FACTORY_ADDRESSES } from '@uniswap/sdk-core'
+import { ChainId, CurrencyAmount, Token } from '@uniswap/sdk-core'
 import IUniswapV3PoolStateJSON from '@uniswap/v3-core/artifacts/contracts/interfaces/pool/IUniswapV3PoolState.sol/IUniswapV3PoolState.json'
 import { computePoolAddress, Pool, Position } from '@uniswap/v3-sdk'
+import { V3_CORE_FACTORY_ADDRESSES } from 'constants/contracts'
+import { MAICHAIN_CHAIN_ID } from 'constants/maichain'
 import { DEFAULT_ERC20_DECIMALS } from 'constants/tokens'
 import { BigNumber } from 'ethers/lib/ethers'
 import { Interface } from 'ethers/lib/utils'
@@ -48,6 +50,7 @@ const DEFAULT_CHAINS = [
   ChainId.BNB,
   ChainId.AVALANCHE,
   ChainId.BASE,
+  MAICHAIN_CHAIN_ID,
 ]
 
 type UseMultiChainPositionsData = { positions?: PositionInfo[]; loading: boolean }
@@ -134,6 +137,7 @@ export default function useMultiChainPositions(account: string, chains = DEFAULT
         let poolAddress = poolAddressCache.get(details, chainId)
         if (!poolAddress) {
           const factoryAddress = V3_CORE_FACTORY_ADDRESSES[chainId]
+          if (!factoryAddress) throw new Error(`Missing V3 factory address for chain ${chainId}`)
           poolAddress = computePoolAddress({ factoryAddress, tokenA, tokenB, fee: details.fee })
           poolAddressCache.set(details, chainId, poolAddress)
         }

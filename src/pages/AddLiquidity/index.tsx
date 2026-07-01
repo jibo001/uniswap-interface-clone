@@ -2,7 +2,7 @@ import { BigNumber } from '@ethersproject/bignumber'
 import type { TransactionResponse } from '@ethersproject/providers'
 import { Trans } from '@lingui/macro'
 import { BrowserEvent, InterfaceElementName, InterfaceEventName } from '@uniswap/analytics-events'
-import { Currency, CurrencyAmount, NONFUNGIBLE_POSITION_MANAGER_ADDRESSES, Percent } from '@uniswap/sdk-core'
+import { Currency, CurrencyAmount, Percent } from '@uniswap/sdk-core'
 import { FeeAmount, NonfungiblePositionManager } from '@uniswap/v3-sdk'
 import { useWeb3React } from '@web3-react/core'
 import { TraceEvent } from 'analytics'
@@ -11,6 +11,7 @@ import OwnershipWarning from 'components/addLiquidity/OwnershipWarning'
 import { sendEvent } from 'components/analytics'
 import UnsupportedCurrencyFooter from 'components/swap/UnsupportedCurrencyFooter'
 import { isSupportedChain } from 'constants/chains'
+import { NONFUNGIBLE_POSITION_MANAGER_ADDRESSES } from 'constants/contracts'
 import usePrevious from 'hooks/usePrevious'
 import { useSingleCallResult } from 'lib/hooks/multicall'
 import { BodyWrapper } from 'pages/AppBody'
@@ -208,15 +209,16 @@ function AddLiquidity() {
   )
 
   const argentWalletContract = useArgentWalletContract()
+  const positionManagerAddress = chainId ? NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId] : undefined
 
   // check whether the user has approved the router on the tokens
   const [approvalA, approveACallback] = useApproveCallback(
     argentWalletContract ? undefined : parsedAmounts[Field.CURRENCY_A],
-    chainId ? NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId] : undefined
+    positionManagerAddress
   )
   const [approvalB, approveBCallback] = useApproveCallback(
     argentWalletContract ? undefined : parsedAmounts[Field.CURRENCY_B],
-    chainId ? NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId] : undefined
+    positionManagerAddress
   )
 
   const allowedSlippage = useUserSlippageToleranceWithDefault(
@@ -226,7 +228,7 @@ function AddLiquidity() {
   async function onAdd() {
     if (!chainId || !provider || !account) return
 
-    if (!positionManager || !baseCurrency || !quoteCurrency) {
+    if (!positionManager || !baseCurrency || !quoteCurrency || !positionManagerAddress) {
       return
     }
 
@@ -249,7 +251,7 @@ function AddLiquidity() {
             })
 
       let txn: { to: string; data: string; value: string } = {
-        to: NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId],
+        to: positionManagerAddress,
         data: calldata,
         value,
       }
@@ -258,12 +260,8 @@ function AddLiquidity() {
         const amountA = parsedAmounts[Field.CURRENCY_A]
         const amountB = parsedAmounts[Field.CURRENCY_B]
         const batch = [
-          ...(amountA && amountA.currency.isToken
-            ? [approveAmountCalldata(amountA, NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId])]
-            : []),
-          ...(amountB && amountB.currency.isToken
-            ? [approveAmountCalldata(amountB, NONFUNGIBLE_POSITION_MANAGER_ADDRESSES[chainId])]
-            : []),
+          ...(amountA && amountA.currency.isToken ? [approveAmountCalldata(amountA, positionManagerAddress)] : []),
+          ...(amountB && amountB.currency.isToken ? [approveAmountCalldata(amountB, positionManagerAddress)] : []),
           {
             to: txn.to,
             data: txn.data,

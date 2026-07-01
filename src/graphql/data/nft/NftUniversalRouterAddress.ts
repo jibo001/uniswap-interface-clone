@@ -13,7 +13,7 @@ gql`
   }
 `
 
-export function getURAddress(chainId?: number, nftURAddress?: string): string | undefined {
+export function getURAddress(chainId?: number, nftURAddress?: string | null): string | undefined {
   if (!chainId) return undefined
   // if mainnet and on NFT flow, use the contract address returned by GQL
   if (chainId === ChainId.MAINNET) {

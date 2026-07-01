@@ -6,13 +6,9 @@ import { useWeb3React } from '@web3-react/core'
 import { sendAnalyticsEvent, Trace, TraceEvent, useTrace } from 'analytics'
 import clsx from 'clsx'
 import { Search } from 'components/Icons/Search'
-import { useCollectionSearch } from 'graphql/data/nft/CollectionSearch'
 import { useSearchTokens } from 'graphql/data/SearchTokens'
 import useDebounce from 'hooks/useDebounce'
-import { useDisableNFTRoutes } from 'hooks/useDisableNFTRoutes'
-import { useIsNftPage } from 'hooks/useIsNftPage'
 import { useOnClickOutside } from 'hooks/useOnClickOutside'
-import { organizeSearchResults } from 'lib/utils/searchBar'
 import { Box } from 'nft/components/Box'
 import { Column, Row } from 'nft/components/Flex'
 import { magicalGradientOnHover } from 'nft/css/common.css'
@@ -53,20 +49,15 @@ export const SearchBar = () => {
   const isMobile = useIsMobile()
   const isTablet = useIsTablet()
   const isNavSearchInputVisible = useIsNavSearchInputVisible()
-  const shouldDisableNFTRoutes = useDisableNFTRoutes()
 
   useOnClickOutside(searchRef, () => {
     isOpen && toggleOpen()
   })
 
-  const { data: collections, loading: collectionsAreLoading } = useCollectionSearch(debouncedSearchValue)
-
   const { chainId } = useWeb3React()
   const { data: tokens, loading: tokensAreLoading } = useSearchTokens(debouncedSearchValue, chainId ?? 1)
 
-  const isNFTPage = useIsNftPage()
-
-  const [reducedTokens, reducedCollections] = organizeSearchResults(isNFTPage, tokens ?? [], collections ?? [])
+  const reducedTokens = tokens?.slice(0, 8) ?? []
 
   // close dropdown on escape
   useEffect(() => {
@@ -82,7 +73,7 @@ export const SearchBar = () => {
     return () => {
       document.removeEventListener('keydown', escapeKeyDownHandler)
     }
-  }, [isOpen, toggleOpen, collections])
+  }, [isOpen, toggleOpen])
 
   // clear searchbar when changing pages
   useEffect(() => {
@@ -107,11 +98,7 @@ export const SearchBar = () => {
   }
 
   const { i18n } = useLingui() // subscribe to locale changes
-  const placeholderText = isMobileOrTablet
-    ? t(i18n)`Search`
-    : shouldDisableNFTRoutes
-    ? t(i18n)`Search tokens`
-    : t(i18n)`Search tokens and NFT collections`
+  const placeholderText = isMobileOrTablet ? t(i18n)`Search` : t(i18n)`Search tokens`
 
   const handleKeyPress = useCallback(
     (event: any) => {
@@ -207,10 +194,9 @@ export const SearchBar = () => {
             <SearchBarDropdown
               toggleOpen={toggleOpen}
               tokens={reducedTokens}
-              collections={reducedCollections}
               queryText={debouncedSearchValue}
               hasInput={debouncedSearchValue.length > 0}
-              isLoading={tokensAreLoading || collectionsAreLoading}
+              isLoading={tokensAreLoading}
             />
           )}
         </Column>
